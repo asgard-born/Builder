@@ -9,13 +9,13 @@ namespace Bank
     public class BankPm : BaseDisposable
     {
         private readonly ReactiveDictionary<Resource, int> _playerResources;
-        private readonly ReactiveTrigger<ResourceCount, BuildingState> _onSpendResourcesForBuildingIteration;
+        private readonly ReactiveTrigger<BuildingState, ResourceCount> _onSpendResourcesForBuildingIteration;
 
         public struct Ctx
         {
             public ReactiveDictionary<Resource, int> playerResources;
-            public ReactiveTrigger<ResourceCount, BuildingState> onSpendResourcesForBuildingIteration;
-            public ReactiveTrigger<ResourceCount, BuildingState> trySpendResourcesForBuildingIteration;
+            public ReactiveTrigger<BuildingState, ResourceCount> onSpendResourcesForBuildingIteration;
+            public ReactiveTrigger<BuildingState, ResourceCount> trySpendResourcesForBuildingIteration;
         }
 
         public BankPm(Ctx ctx)
@@ -25,13 +25,13 @@ namespace Bank
             AddUnsafe(ctx.trySpendResourcesForBuildingIteration.Subscribe(TrySpendResourcesForBuildingIteration));
         }
 
-        private void TrySpendResourcesForBuildingIteration(ResourceCount demandResource, BuildingState state)
+        private void TrySpendResourcesForBuildingIteration(BuildingState state, ResourceCount demandResource)
         {
             int spendCount = TrySpendResource(demandResource);
 
             if (spendCount > 0)
             {
-                _onSpendResourcesForBuildingIteration?.Notify(new ResourceCount(demandResource.resource, spendCount), state);
+                _onSpendResourcesForBuildingIteration?.Notify(state, new ResourceCount(demandResource.resource, spendCount));
             }
         }
 

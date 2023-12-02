@@ -15,9 +15,10 @@ namespace Buildings
         private readonly float _lastKeyTime;
         private readonly BuildingState _state;
 
-        private readonly ReactiveTrigger<ResourceCount, BuildingState> _trySpendResourcesForBuildingIteration;
+        private readonly ReactiveTrigger<ResourceCount> _trySpendResourcesForBuildingIteration;
         private int _byingSteps = 12;
         private float _stepByingTime;
+        private readonly Ctx _ctx;
 
         public struct Ctx
         {
@@ -25,11 +26,12 @@ namespace Buildings
             public Dictionary<int, BuildingLevel> upgrades;
             public AnimationCurve upgradeCurve;
             public ReactiveTrigger onPlayerStay;
-            public ReactiveTrigger<ResourceCount, BuildingState> trySpendResourcesForBuildingIteration;
+            public ReactiveTrigger<ResourceCount> trySpendResourcesForBuildingIteration;
         }
 
         public BuildingPointPm(Ctx ctx)
         {
+            _ctx = ctx;
             _state = ctx.state;
             _upgrades = ctx.upgrades;
             _upgradeCurve = ctx.upgradeCurve;
@@ -86,6 +88,7 @@ namespace Buildings
 
             if (isAllAdded) return;
 
+            Debug.Log("____________BBBBB");
             var prevByingStep = (int)Math.Floor(_state.inProcessByingTime / _stepByingTime);
             _state.inProcessByingTime += Time.deltaTime;
             var nextByingStep = (int)Math.Floor(_state.inProcessByingTime / _stepByingTime);
@@ -109,7 +112,7 @@ namespace Buildings
                 int totalResourcesSpendCheckpoint = Mathf.Max(1, (int)Math.Floor(percentToSpend * requiredResource.Value));
                 int resourceToSpend = totalResourcesSpendCheckpoint - spendResource;
 
-                _trySpendResourcesForBuildingIteration?.Notify(new ResourceCount(requiredResource.Key, resourceToSpend), _state);
+                _trySpendResourcesForBuildingIteration?.Notify(new ResourceCount(requiredResource.Key, resourceToSpend));
             }
         }
     }

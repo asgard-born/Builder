@@ -19,15 +19,15 @@ namespace Buildings
             public BuildingPointView buildingPointView;
             public AnimationCurve upgradeCurve;
             public Camera camera;
-            public ReactiveTrigger<ResourceCount, BuildingState> trySpendResourcesForBuildingIteration;
-            public ReactiveTrigger<ResourceCount, BuildingState> onSpendResourcesForBuildingIteration;
+            public ReactiveTrigger<ResourceCount> trySpendResourcesForBuildingIteration;
+            public ReactiveTrigger<ResourceCount> onSpendResourcesForBuildingIteration;
             public Dictionary<Resource, Sprite> resourcesSprites;
         }
 
         public BuildingEntity(Ctx ctx)
         {
             _ctx = ctx;
-            
+
             AddUnsafe(ctx.state.level.Subscribe(OnChangeLevel));
             AddUnsafe(ctx.onSpendResourcesForBuildingIteration.Subscribe(OnSpendResourcesForBuildingIteration));
 
@@ -59,19 +59,19 @@ namespace Buildings
 
             ctx.buildingPointView.Initialize(buildingViewCtx);
         }
-        
-        private void OnSpendResourcesForBuildingIteration(ResourceCount spendedResource, BuildingState state)
+
+        private void OnSpendResourcesForBuildingIteration(ResourceCount spendedResource)
         {
-            if (state.addedResources.TryGetValue(spendedResource.resource, out int value))
+            if (_ctx.state.addedResources.TryGetValue(spendedResource.resource, out int value))
             {
-                state.addedResources[spendedResource.resource] = value + spendedResource.count;
+                _ctx.state.addedResources[spendedResource.resource] = value + spendedResource.count;
             }
             else
             {
-                state.addedResources[spendedResource.resource] = spendedResource.count;
+                _ctx.state.addedResources[spendedResource.resource] = spendedResource.count;
             }
 
-            OnResourceChanged(spendedResource.resource, state);
+            OnResourceChanged(spendedResource.resource, _ctx.state);
         }
 
         private void OnResourceChanged(Resource resKey, BuildingState state)

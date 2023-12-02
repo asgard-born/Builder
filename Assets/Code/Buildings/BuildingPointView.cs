@@ -99,14 +99,12 @@ namespace Buildings
 
         private void OnResourceUpdate(DictionaryReplaceEvent<Resource, int> replaceEvent)
         {
-            Debug.Log(gameObject.name);
             var remainResource = _state.requiredResourcesForUpgrade[replaceEvent.Key] - replaceEvent.NewValue;
             ArrangeResourceView(replaceEvent.Key, remainResource);
         }
 
         private void OnResourceAdded(DictionaryAddEvent<Resource, int> addEvent)
         {
-            Debug.Log(gameObject.name);
             var remainResource = _state.requiredResourcesForUpgrade[addEvent.Key] - addEvent.Value;
             ArrangeResourceView(addEvent.Key, remainResource);
         }
@@ -119,7 +117,7 @@ namespace Buildings
 
             if (remainResource > 0)
             {
-                Debug.Log($"{gameObject.name} {res.ToString()}: {remainResource}");
+                Debug.Log($"________________AAAAA {gameObject.name} {res.ToString()}: {remainResource}");
 
                 _costResourcesViews[res].UpdateText(remainResource);
             }

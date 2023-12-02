@@ -16,8 +16,8 @@ namespace Root
     {
         private ReactiveEvent<Vector3, Quaternion> _onMovementUpdated;
         private ReactiveEvent<Vector2> _onInputUpdated;
-        private ReactiveTrigger<ResourceCount, BuildingState> _trySpendResourcesForBuildingIteration;
-        private ReactiveTrigger<ResourceCount, BuildingState> _onSpendResourcesForBuildingIteration;
+        private ReactiveTrigger<BuildingState, ResourceCount> _trySpendResourcesForBuildingIteration;
+        private ReactiveTrigger<BuildingState, ResourceCount> _onSpendResourcesForBuildingIteration;
 
         public struct Ctx
         {
@@ -39,8 +39,8 @@ namespace Root
         {
             _onInputUpdated = AddUnsafe(new ReactiveEvent<Vector2>());
             _onMovementUpdated = AddUnsafe(new ReactiveEvent<Vector3, Quaternion>());
-            _trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount, BuildingState>());
-            _onSpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount, BuildingState>());
+            _trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<BuildingState, ResourceCount>());
+            _onSpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<BuildingState, ResourceCount>());
         }
 
         private void InitializeBuildings(Ctx ctx)
@@ -54,6 +54,12 @@ namespace Root
                 //TODO for demo, after - Deserialization from Json
                 state.requiredResourcesForUpgrade = buildingPointView.upgradeDictionary[buildingPointView.state.level.Value + 1].resources;
 
+                var onSpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount>());
+                var trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount>());
+
+                onSpendResourcesForBuildingIteration.Subscribe(resourceCount => _onSpendResourcesForBuildingIteration?.Notify(state, resourceCount));
+                trySpendResourcesForBuildingIteration.Subscribe(resourceCount => _trySpendResourcesForBuildingIteration?.Notify(state, resourceCount));
+
                 var buildingEntityCtx = new BuildingEntity.Ctx
                 {
                     upgrades = buildingPointView.upgradeDictionary,
@@ -62,8 +68,8 @@ namespace Root
                     resourcesSprites = ctx.contentProvider.resourcesSprites,
                     buildingPointView = buildingPointView,
                     camera = Camera.main,
-                    trySpendResourcesForBuildingIteration = _trySpendResourcesForBuildingIteration,
-                    onSpendResourcesForBuildingIteration = _onSpendResourcesForBuildingIteration
+                    trySpendResourcesForBuildingIteration = trySpendResourcesForBuildingIteration,
+                    onSpendResourcesForBuildingIteration = onSpendResourcesForBuildingIteration
                 };
 
                 AddUnsafe(new BuildingEntity(buildingEntityCtx));

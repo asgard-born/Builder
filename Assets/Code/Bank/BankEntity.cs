@@ -14,8 +14,8 @@ namespace Bank
             public ReactiveDictionary<Resource, int> playerResources;
             public RectTransform uiRoot;
             public BankView view;
-            public ReactiveTrigger<ResourceCount, BuildingState> trySpendResourcesForBuildingIteration;
-            public ReactiveTrigger<ResourceCount, BuildingState> onSpendResourcesForBuildingIteration;
+            public ReactiveTrigger<BuildingState, ResourceCount> trySpendResourcesForBuildingIteration;
+            public ReactiveTrigger<BuildingState, ResourceCount> onSpendResourcesForBuildingIteration;
         }
 
         public BankEntity(Ctx ctx)
