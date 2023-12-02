@@ -117,8 +117,6 @@ namespace Buildings
 
             if (remainResource > 0)
             {
-                Debug.Log($"________________AAAAA {gameObject.name} {res.ToString()}: {remainResource}");
-
                 _costResourcesViews[res].UpdateText(remainResource);
             }
             else

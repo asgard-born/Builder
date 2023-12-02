@@ -88,7 +88,6 @@ namespace Buildings
 
             if (isAllAdded) return;
 
-            Debug.Log("____________BBBBB");
             var prevByingStep = (int)Math.Floor(_state.inProcessByingTime / _stepByingTime);
             _state.inProcessByingTime += Time.deltaTime;
             var nextByingStep = (int)Math.Floor(_state.inProcessByingTime / _stepByingTime);

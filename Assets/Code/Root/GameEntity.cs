@@ -57,8 +57,15 @@ namespace Root
                 var onSpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount>());
                 var trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount>());
 
-                onSpendResourcesForBuildingIteration.Subscribe(resourceCount => _onSpendResourcesForBuildingIteration?.Notify(state, resourceCount));
                 trySpendResourcesForBuildingIteration.Subscribe(resourceCount => _trySpendResourcesForBuildingIteration?.Notify(state, resourceCount));
+                
+                _onSpendResourcesForBuildingIteration.Subscribe((buildingState, count) =>
+                {
+                    if (buildingState == state)
+                    {
+                        onSpendResourcesForBuildingIteration.Notify(count);
+                    }
+                });
 
                 var buildingEntityCtx = new BuildingEntity.Ctx
                 {
