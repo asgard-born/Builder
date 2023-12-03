@@ -14,5 +14,6 @@ namespace Buildings
         public ReactiveProperty<int> level = new();
         public Dictionary<Resource, int> requiredResourcesForUpgrade;
         public ReactiveDictionary<Resource, int> addedResources = new();
+        // BuingStatus: waiting, failed, success 
     }
 }

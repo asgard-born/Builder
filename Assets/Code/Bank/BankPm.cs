@@ -15,7 +15,7 @@ namespace Bank
         {
             public ReactiveDictionary<Resource, int> playerResources;
             public ReactiveTrigger<BuildingState, ResourceCount> onSpendResourcesForBuildingIteration;
-            public ReactiveTrigger<BuildingState, ResourceCount> trySpendResourcesForBuildingIteration;
+            public ReactiveCommand<(BuildingState, ResourceCount), BuingStatus> trySpendResourcesForBuildingIteration;
         }
 
         public BankPm(Ctx ctx)
@@ -25,14 +25,16 @@ namespace Bank
             AddUnsafe(ctx.trySpendResourcesForBuildingIteration.Subscribe(TrySpendResourcesForBuildingIteration));
         }
 
-        private void TrySpendResourcesForBuildingIteration(BuildingState state, ResourceCount demandResource)
+        private BuingStatus TrySpendResourcesForBuildingIteration((BuildingState state, ResourceCount resCount) stateAndRes)
         {
-            int spendCount = TrySpendResource(demandResource);
+            int spendCount = TrySpendResource(stateAndRes.resCount);
 
             if (spendCount > 0)
             {
-                _onSpendResourcesForBuildingIteration?.Notify(state, new ResourceCount(demandResource.resource, spendCount));
+                _onSpendResourcesForBuildingIteration?.Notify(stateAndRes.state, new ResourceCount(stateAndRes.resCount.resource, spendCount));
             }
+
+            return spendCount > 0 ? BuingStatus.Completed : BuingStatus.Failed;
         }
 
         private int TrySpendResource(ResourceCount demandResource)

@@ -8,6 +8,7 @@ using Framework;
 using Framework.Reactive;
 using Shared;
 using UI.Entities;
+using UniRx;
 using UnityEngine;
 
 namespace Root
@@ -16,7 +17,7 @@ namespace Root
     {
         private ReactiveEvent<Vector3, Quaternion> _onMovementUpdated;
         private ReactiveEvent<Vector2> _onInputUpdated;
-        private ReactiveTrigger<BuildingState, ResourceCount> _trySpendResourcesForBuildingIteration;
+        private ReactiveCommand<(BuildingState, ResourceCount), BuingStatus> _trySpendResourcesForBuildingIteration;
         private ReactiveTrigger<BuildingState, ResourceCount> _onSpendResourcesForBuildingIteration;
 
         public struct Ctx
@@ -39,7 +40,7 @@ namespace Root
         {
             _onInputUpdated = AddUnsafe(new ReactiveEvent<Vector2>());
             _onMovementUpdated = AddUnsafe(new ReactiveEvent<Vector3, Quaternion>());
-            _trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<BuildingState, ResourceCount>());
+            _trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveCommand<(BuildingState, ResourceCount), BuingStatus>());
             _onSpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<BuildingState, ResourceCount>());
         }
 
@@ -55,9 +56,12 @@ namespace Root
                 state.requiredResourcesForUpgrade = buildingPointView.upgradeDictionary[buildingPointView.state.level.Value + 1].resources;
 
                 var onSpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount>());
-                var trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveTrigger<ResourceCount>());
+                var trySpendResourcesForBuildingIteration = AddUnsafe(new ReactiveCommand<ResourceCount, BuingStatus?>());
 
-                trySpendResourcesForBuildingIteration.Subscribe(resourceCount => _trySpendResourcesForBuildingIteration?.Notify(state, resourceCount));
+                trySpendResourcesForBuildingIteration.Subscribe(resourceCount =>
+                {
+                    return _trySpendResourcesForBuildingIteration?.Execute((state, resourceCount));
+                });
                 
                 _onSpendResourcesForBuildingIteration.Subscribe((buildingState, count) =>
                 {

@@ -14,7 +14,7 @@ namespace Bank
             public ReactiveDictionary<Resource, int> playerResources;
             public RectTransform uiRoot;
             public BankView view;
-            public ReactiveTrigger<BuildingState, ResourceCount> trySpendResourcesForBuildingIteration;
+            public ReactiveCommand<(BuildingState, ResourceCount), BuingStatus> trySpendResourcesForBuildingIteration;
             public ReactiveTrigger<BuildingState, ResourceCount> onSpendResourcesForBuildingIteration;
         }
 

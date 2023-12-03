@@ -10,15 +10,13 @@ namespace Buildings
 {
     public class BuildingPointPm : BaseDisposable
     {
-        private readonly Dictionary<int, BuildingLevel> _upgrades;
-        private readonly AnimationCurve _upgradeCurve;
         private readonly float _lastKeyTime;
-        private readonly BuildingState _state;
-
-        private readonly ReactiveTrigger<ResourceCount> _trySpendResourcesForBuildingIteration;
-        private int _byingSteps = 12;
-        private float _stepByingTime;
+        private readonly ReactiveCommand<ResourceCount, BuingStatus?> _trySpendResourcesForBuildingIteration;
+        private readonly int _byingSteps = 12;
+        private readonly float _stepByingTime;
         private readonly Ctx _ctx;
+        
+        private BuingStatus? _status;
 
         public struct Ctx
         {
@@ -26,27 +24,93 @@ namespace Buildings
             public Dictionary<int, BuildingLevel> upgrades;
             public AnimationCurve upgradeCurve;
             public ReactiveTrigger onPlayerStay;
-            public ReactiveTrigger<ResourceCount> trySpendResourcesForBuildingIteration;
+            public ReactiveCommand<ResourceCount, BuingStatus?> trySpendResourcesForBuildingIteration;
+            public ReactiveTrigger<ResourceCount> onSpendResourcesForBuildingIteration;
         }
 
         public BuildingPointPm(Ctx ctx)
         {
             _ctx = ctx;
-            _state = ctx.state;
-            _upgrades = ctx.upgrades;
-            _upgradeCurve = ctx.upgradeCurve;
             _lastKeyTime = ctx.upgradeCurve.keys[ctx.upgradeCurve.keys.Length - 1].time;
             _trySpendResourcesForBuildingIteration = ctx.trySpendResourcesForBuildingIteration;
             _stepByingTime = _lastKeyTime / _byingSteps;
 
             AddUnsafe(ctx.onPlayerStay.Subscribe(OnPlayerStay));
+            AddUnsafe(ctx.onSpendResourcesForBuildingIteration.Subscribe(OnSpendResourcesForBuildingIteration));
+        }
+        
+        private void OnSpendResourcesForBuildingIteration(ResourceCount spendedResource)
+        {
+            if (_ctx.state.addedResources.TryGetValue(spendedResource.resource, out int value))
+            {
+                _ctx.state.addedResources[spendedResource.resource] = value + spendedResource.count;
+            }
+            else
+            {
+                _ctx.state.addedResources[spendedResource.resource] = spendedResource.count;
+            }
+
+            OnResourceChanged(spendedResource.resource, _ctx.state);
+        }
+
+        private void OnResourceChanged(Resource resKey, BuildingState state)
+        {
+            var allIsAdded = true;
+
+            foreach (var required in state.requiredResourcesForUpgrade)
+            {
+                if (state.addedResources.TryGetValue(required.Key, out var addedCount))
+                {
+                    if (addedCount < required.Value)
+                    {
+                        allIsAdded = false;
+                    }
+                    else
+                    {
+                        if (resKey == required.Key)
+                        {
+                            state.inProcessByingTime = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    allIsAdded = false;
+                }
+            }
+
+            if (allIsAdded)
+            {
+                LevelUp(state);
+            }
+
+            _status = BuingStatus.Completed;
+        }
+
+        private void LevelUp(BuildingState state)
+        {
+            state.level.Value += 1;
+            state.addedResources.Clear();
+            state.inProcessByingTime = 0;
+            
+            OnChangeLevel();
+        }
+
+        private void OnChangeLevel()
+        {
+            if (_ctx.upgrades.TryGetValue(_ctx.state.level.Value + 1, out BuildingLevel buildingLevel))
+            {
+                _ctx.state.requiredResourcesForUpgrade = buildingLevel.resources;
+            }
         }
 
         private void OnPlayerStay()
         {
+            if (_status == BuingStatus.Waiting) return;
+            
             Dictionary<Resource, int> resourcesRequired;
 
-            if (_upgrades.TryGetValue(_state.level.Value + 1, out var buildingLevel))
+            if (_ctx.upgrades.TryGetValue(_ctx.state.level.Value + 1, out var buildingLevel))
             {
                 resourcesRequired = buildingLevel.resources;
             }
@@ -55,7 +119,7 @@ namespace Buildings
                 return;
             }
 
-            ReactiveDictionary<Resource, int> resourcesAdded = _state.addedResources;
+            ReactiveDictionary<Resource, int> resourcesAdded = _ctx.state.addedResources;
             KeyValuePair<Resource, int> requiredResource = new KeyValuePair<Resource, int>();
 
             int spendResource = 0;
@@ -88,22 +152,22 @@ namespace Buildings
 
             if (isAllAdded) return;
 
-            var prevByingStep = (int)Math.Floor(_state.inProcessByingTime / _stepByingTime);
-            _state.inProcessByingTime += Time.deltaTime;
-            var nextByingStep = (int)Math.Floor(_state.inProcessByingTime / _stepByingTime);
+            var prevByingStep = (int)Math.Floor(_ctx.state.inProcessByingTime / _stepByingTime);
+            _ctx.state.inProcessByingTime += Time.deltaTime;
+            var nextByingStep = (int)Math.Floor(_ctx.state.inProcessByingTime / _stepByingTime);
 
             if (nextByingStep > prevByingStep)
             {
                 float percentToSpend;
 
-                if (_state.inProcessByingTime >= _lastKeyTime)
+                if (_ctx.state.inProcessByingTime >= _lastKeyTime)
                 {
-                    percentToSpend = _upgradeCurve.Evaluate(_lastKeyTime);
-                    _state.inProcessByingTime = _lastKeyTime;
+                    percentToSpend = _ctx.upgradeCurve.Evaluate(_lastKeyTime);
+                    _ctx.state.inProcessByingTime = _lastKeyTime;
                 }
                 else
                 {
-                    percentToSpend = _upgradeCurve.Evaluate(_state.inProcessByingTime);
+                    percentToSpend = _ctx.upgradeCurve.Evaluate(_ctx.state.inProcessByingTime);
                 }
 
                 percentToSpend = Mathf.Clamp01(percentToSpend);
@@ -111,7 +175,8 @@ namespace Buildings
                 int totalResourcesSpendCheckpoint = Mathf.Max(1, (int)Math.Floor(percentToSpend * requiredResource.Value));
                 int resourceToSpend = totalResourcesSpendCheckpoint - spendResource;
 
-                _trySpendResourcesForBuildingIteration?.Notify(new ResourceCount(requiredResource.Key, resourceToSpend));
+                _status = BuingStatus.Waiting;
+                _status = _trySpendResourcesForBuildingIteration?.Execute(new ResourceCount(requiredResource.Key, resourceToSpend));
             }
         }
     }
